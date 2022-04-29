@@ -1,11 +1,13 @@
 export RandomFourier, FT
 
 """
-    RandomFourier(phases = true)
+    RandomFourier(phases = true, dims = nothing)
 
 A surrogate that randomizes the Fourier components
 of the signal in some manner. If `phases==true`, the phases are randomized,
-otherwise the amplitudes are randomized. `FT` is an alias for `RandomFourier`.
+otherwise the amplitudes are randomized.
+If `dims` is given, only the Fourier components in the corresponding dimensions are randomized.
+`FT` is an alias for `RandomFourier`.
 
 Random Fourier phase surrogates[^Theiler1991] preserve the
 autocorrelation function, or power spectrum, of the original signal.
@@ -21,30 +23,34 @@ the original signal was produced by a linear Gaussian process [^Theiler1991].
 """
 struct RandomFourier <: Surrogate
     phases::Bool
+    dims
 end
-RandomFourier() = RandomFourier(true)
+RandomFourier() = RandomFourier(true, nothing)
+RandomFourier(phases::Bool) = RandomFourier(phases, nothing)
 const FT = RandomFourier
 
-function surrogenerator(x::AbstractVector, rf::RandomFourier, rng = Random.default_rng())
-    forward = plan_rfft(x)
-    inverse = plan_irfft(forward*x, length(x))
-    m = mean(x)
+function surrogenerator(x::AbstractArray, rf::RandomFourier, rng = Random.default_rng())
+    dims = isnothing(rf.dims) ? (1:ndims(x)) : rf.dims
+    any(.!in.(dims, (1:ndims(x),))) && error("FFT dimensions exceed array dimensions")
+    forward = plan_rfft(x, dims)
+    inverse = plan_irfft(forward*x, size(x, 1), dims)
+    m = mean(x; dims)
     𝓕 = forward*(x .- m)
     shuffled𝓕 = zero(𝓕)
     s = similar(x)
-    n = length(𝓕)
+    n = size(𝓕)
     r = abs.(𝓕)
     ϕ = angle.(𝓕)
     coeffs = zero(r)
-    
-    init = (inverse = inverse, m = m, coeffs = coeffs, n = n, r = r, 
+
+    init = (inverse = inverse, m = m, coeffs = coeffs, n = n, r = r,
             ϕ = ϕ, shuffled𝓕 = shuffled𝓕)
     return SurrogateGenerator(rf, x, s, init, rng)
 end
 
 function (sg::SurrogateGenerator{<:RandomFourier})()
-    inverse, m, coeffs, n, r, ϕ, shuffled𝓕 = 
-        getfield.(Ref(sg.init), 
+    inverse, m, coeffs, n, r, ϕ, shuffled𝓕 =
+        getfield.(Ref(sg.init),
         (:inverse, :m, :coeffs, :n, :r, :ϕ, :shuffled𝓕))
     s, rng, phases = sg.s, sg.rng, sg.method.phases
 
@@ -58,4 +64,3 @@ function (sg::SurrogateGenerator{<:RandomFourier})()
     s .= inverse * shuffled𝓕 .+ m
     return s
 end
-

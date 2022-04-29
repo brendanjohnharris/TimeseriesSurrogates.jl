@@ -29,7 +29,7 @@ end
 
     # If rescaling, the surrogate will have the same values as the original
     @test sort(x) ≈ sort(s_rescale)
-    
+
 end
 
 @testset "PartialRandomization" begin
@@ -52,7 +52,7 @@ end
     @test_throws AssertionError PartialRandomizationAAFT(-0.01)
     @test_throws AssertionError PartialRandomizationAAFT(1.01)
 end
-    
+
 @testset "RandomCascade" begin
     randomcascade = RandomCascade()
     s = surrogate(x, randomcascade)
@@ -224,7 +224,7 @@ end
 end
 
 using DelayEmbeddings
-@testset "ShufleDims" begin
+@testset "ShuffleDims" begin
 	X = Dataset(rand(100, 3))
 	Y = surrogate(X, ShuffleDimensions())
 	for i in 1:100
