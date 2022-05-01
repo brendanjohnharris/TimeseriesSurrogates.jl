@@ -27,7 +27,7 @@ function surrogenerator(x::AbstractArray, method::AAFT, rng = Random.default_rng
 
     init = (
         x_sorted = sort(x[:]),
-        ix = zeros(Int, size(x)),
+        ix = zeros(Int, size(x))[:],
         inverse = inverse,
         m = m,
         𝓕 = 𝓕,
@@ -48,7 +48,7 @@ function (sg::SurrogateGenerator{<:AAFT})()
         x_sorted, ix,  inverse, m, r, ϕ, shuffled𝓕, coeffs, n =
         getfield.(Ref(sg.init), init_fields)
 
-    coeffs .= rand(rng, Uniform(0, 2π), length(shuffled𝓕))
+    coeffs .= rand(rng, Uniform(0, 2π), size(shuffled𝓕))
     shuffled𝓕 .= r .* exp.(coeffs .* 1im)
     s .= (inverse * shuffled𝓕) .+ m
 

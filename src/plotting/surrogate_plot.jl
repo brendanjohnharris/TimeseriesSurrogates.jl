@@ -86,7 +86,7 @@ function _surroplot(X::T, S::T;
     # sax2 = Makie.Axis3(fig[2,2])
     # Makie.volume!(sax2, fs..., ps, algorithm=:additive, colormap=cp, colorrange=(0, cmax))
     # Makie.xlims!(ax2, 0, 1, 0, 1, 0, 1)
-    idxs = sample(CartesianIndices(p[:, :, 1]), 100)
+    idxs = sample(CartesianIndices(p[:, :, 1]), 10)
     ax2 = Makie.Axis(fig[2,1], xscale=Makie.pseudolog10, yscale=Makie.log10)
     [Makie.lines!(ax2, fs[3], p[idx, :], color=Makie.RGBA(0, 0, 0, 0.5)) for idx in idxs]
     Makie.xlims!(ax2, 0, nothing)
