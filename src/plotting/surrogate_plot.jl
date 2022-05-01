@@ -74,22 +74,31 @@ function _surroplot(X::T, S::T;
     # ax2, _ = Makie.lines(fig[2,1], 0:length(acx)-1, acx; color = cx)
     # Makie.lines!(ax2, 0:length(acx)-1, autocor(s); color = cs)
 
-    # FFT spectrum
+    # FFT spectrum for the temporal dimension
     p = abs.(fft(X)).^2
     p = p./sum(p)
     ps = abs.(fft(S)).^2
     ps = ps./sum(ps)
     cmax = max(p..., ps...)
-    ax2 = Makie.Axis3(fig[2,1])
-    Makie.volume!(ax2, p, algorithm=:mip, colormap=cp, colorrange=(0, cmax))
-    sax2 = Makie.Axis3(fig[2,2])
-    Makie.volume!(sax2, ps, algorithm=:mip, colormap=cp, colorrange=(0, cmax))
+    fs = fftfreq.(size(X))
+    # ax2 = Makie.Axis3(fig[2,1])
+    # Makie.volume!(ax2, fs..., p, algorithm=:additive, colormap=cp, colorrange=(0, cmax))
+    # sax2 = Makie.Axis3(fig[2,2])
+    # Makie.volume!(sax2, fs..., ps, algorithm=:additive, colormap=cp, colorrange=(0, cmax))
+    # Makie.xlims!(ax2, 0, 1, 0, 1, 0, 1)
+    idxs = sample(CartesianIndices(p[:, :, 1]), 100)
+    ax2 = Makie.Axis(fig[2,1], xscale=Makie.pseudolog10, yscale=Makie.log10)
+    [Makie.lines!(ax2, fs[3], p[idx, :], color=Makie.RGBA(0, 0, 0, 0.5)) for idx in idxs]
+    Makie.xlims!(ax2, 0, nothing)
+    sax2 = Makie.Axis(fig[2,2], xscale=Makie.pseudolog10, yscale=Makie.log10)
+    [Makie.lines!(sax2, fs[3], ps[idx, :], color=Makie.RGBA(0, 0, 0, 0.5)) for idx in idxs]
+    Makie.xlims!(sax2, 0, nothing)
 
     # Distribution
     ax3 = Makie.Axis(fig[3,1])
-    Makie.density!(ax3, X[:])
+    Makie.density!(ax3, X[:], color=Makie.RGBA(0, 0, 0, 0.5))
     sax3 = Makie.Axis(fig[3,2])
-    Makie.density!(sax3, S[:])
+    Makie.density!(sax3, S[:], color=Makie.RGBA(0, 0, 0, 0.5))
 
     # # Binned multitaper periodograms
     # p, psurr = DSP.mt_pgram(x), DSP.mt_pgram(s)
@@ -103,14 +112,10 @@ function _surroplot(X::T, S::T;
     # Makie.hist!(ax4, s; label = "Surrogate", bins = nbins, color = (cs, 0.5))
     # Makie.axislegend(ax4)
 
-    # ax1.xlabel = "time step"
-    # ax1.ylabel = "value"
-    # ax2.xlabel = "lag"
-    # ax2.ylabel = "autocor"
-    # ax3.xlabel = "binned freq."
-    # ax3.ylabel = "power"
-    # ax4.xlabel = "binned value"
-    # ax4.ylabel = "histogram"
+    ax1.xlabel="x"; ax1.ylabel="y"; sax1.xlabel="x"; sax1.ylabel="y"
+    ax2.xlabel="f"; ax2.ylabel="S"; sax2.xlabel="f"; sax2.ylabel="S"
+    ax3.xlabel="Value"; ax3.ylabel="Probability density"; sax3.xlabel="Value"; sax3.ylabel="Probability Density"
+
     return fig, _t
 end
 
@@ -133,8 +138,9 @@ function surroplot(x::T, s::T; kwargs...) where T <: AbstractArray{D, 3} where D
     return fig
 end
 
-function animatesurroplot(x, s; filepath=mktemp()[1]*".mkv", framerate=24, kwargs...)
+function animatesurroplot(x, s; filepath=mktemp()[1]*".gif", framerate=24, kwargs...)
     times = 1:size(x)[end]
+    @assert maximum(times) == size(s)[end]
     fig, _t = _surroplot(x, s; kwargs...)
     Makie.record(fig, filepath, times; framerate) do t
         _t[] = t

@@ -33,6 +33,7 @@ function surrogenerator(x::AbstractArray, rf::RandomFourier, rng = Random.defaul
     dims = isnothing(rf.dims) ? (1:ndims(x)) : rf.dims
     any(.!in.(dims, (1:ndims(x),))) && error("FFT dimensions exceed array dimensions")
     forward = plan_rfft(x, dims)
+    # The rfft discards negative frequencies only for the first dimension. This is no issue.
     inverse = plan_irfft(forward*x, size(x, 1), dims)
     m = mean(x; dims)
     𝓕 = forward*(x .- m)

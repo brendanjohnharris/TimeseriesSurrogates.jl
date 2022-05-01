@@ -12,20 +12,22 @@ AAFT surrogates can be used to test the null hypothesis that the data come from 
 monotonic nonlinear transformation of a linear Gaussian process
 (also called integrated white noise)[^Theiler1991].
 
+Surrogates for array inputs currently randomise over all dimensions.
+
 [^Theiler1991]: J. Theiler, S. Eubank, A. Longtin, B. Galdrikian, J. Farmer, Testing for nonlinearity in time series: The method of surrogate data, Physica D 58 (1–4) (1992) 77–94.
 """
-struct AAFT <: Surrogate end
+struct AAFT <: Surrogate; end
 
-function surrogenerator(x, method::AAFT, rng = Random.default_rng())
-    n = length(x)
+function surrogenerator(x::AbstractArray, method::AAFT, rng = Random.default_rng())
+    n = size(x)
     m = mean(x)
     forward = plan_rfft(x)
-    inverse = plan_irfft(forward * x, n)
+    inverse = plan_irfft(forward*x, size(x, 1))
     𝓕 = forward * (x .- m)
 
     init = (
-        x_sorted = sort(x),
-        ix = zeros(Int, n),
+        x_sorted = sort(x[:]),
+        ix = zeros(Int, size(x)),
         inverse = inverse,
         m = m,
         𝓕 = 𝓕,
@@ -43,7 +45,7 @@ function (sg::SurrogateGenerator{<:AAFT})()
     s, rng = sg.s, sg.rng
 
     init_fields = (:x_sorted, :ix, :inverse, :m, :r, :ϕ, :shuffled𝓕, :coeffs, :n)
-        x_sorted, ix,  inverse, m, r, ϕ, shuffled𝓕, coeffs, n = 
+        x_sorted, ix,  inverse, m, r, ϕ, shuffled𝓕, coeffs, n =
         getfield.(Ref(sg.init), init_fields)
 
     coeffs .= rand(rng, Uniform(0, 2π), length(shuffled𝓕))
@@ -51,8 +53,8 @@ function (sg::SurrogateGenerator{<:AAFT})()
     s .= (inverse * shuffled𝓕) .+ m
 
     # Rescale back to original values to obtain AAFT surrogate.
-    sortperm!(ix, s)
+    sortperm!(ix, s[:])
     s[ix] .= x_sorted
-    
+
     return s
 end
