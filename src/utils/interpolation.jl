@@ -27,8 +27,6 @@ function interp(x, y, range::LinRange)
     return itp(range)
 end
 
-# ... interpolate nd array ...
-
 """
     interp!(ȳ::Vector, itp)
 
