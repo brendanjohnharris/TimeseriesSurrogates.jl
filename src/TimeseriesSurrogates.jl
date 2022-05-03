@@ -9,6 +9,7 @@ using DSP
 using Interpolations
 using Wavelets
 using Requires
+using NaNStatistics
 
 include("api.jl")
 

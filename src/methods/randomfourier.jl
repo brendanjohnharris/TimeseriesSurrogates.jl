@@ -34,10 +34,16 @@ function surrogenerator(x::AbstractArray, rf::RandomFourier, rng = Random.defaul
     dims = [dims...] # In case scalar
     any(.!in.(dims, (1:ndims(x),))) && error("FFT dimensions exceed array dimensions")
     forward = plan_rfft(x, dims)
-    # The rfft discards negative frequencies only for the first dimension. This is no issue.
+    # The rfft discards negative frequencies only for the first dimension. This is no issue (?).
     inverse = plan_irfft(forward*x, size(x)[dims[1]], dims)
-    m = mean(x; dims)
-    𝓕 = forward*(x .- m)
+    m = nanmean(x; dims=(dims...,))
+    if any(isnan, x) # In this case we replace NaN's with zeros in the mean-centered data, which is O.K. because zeroes don't contribute to the FT integral
+        _x = deepcopy(x) .- m
+        _x[isnan.(x)] .= 0.0
+        𝓕 = forward*(_x)
+    else
+        𝓕 = forward*(x .- m)
+    end
     shuffled𝓕 = zero(𝓕)
     s = similar(x)
     n = size(𝓕)
@@ -75,5 +81,10 @@ function (sg::SurrogateGenerator{<:RandomFourier})()
         shuffled𝓕 .= coeffs .* exp.(ϕ .* 1im)
     end
     s .= inverse * shuffled𝓕 .+ m
+
+    if any(isnan, sg.x)
+        s[isnan.(sg.x)] .= NaN
+    end
+
     return s
 end
