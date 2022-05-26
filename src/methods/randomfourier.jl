@@ -31,7 +31,7 @@ const FT = RandomFourier
 
 function surrogenerator(x::AbstractArray, rf::RandomFourier, rng = Random.default_rng())
     dims = isnothing(rf.dims) ? (1:ndims(x)) : rf.dims
-    dims = [dims...] # In case scalar
+    dims = sort([dims...]; rev=true) # In case scalar. Also better to have last dimension (usually time) first
     any(.!in.(dims, (1:ndims(x),))) && error("FFT dimensions exceed array dimensions")
     forward = plan_rfft(x, dims)
     # The rfft discards negative frequencies only for the first dimension. This is no issue (?).
@@ -82,9 +82,9 @@ function (sg::SurrogateGenerator{<:RandomFourier})()
     end
     s .= inverse * shuffled𝓕 .+ m
 
-    if any(isnan, sg.x)
-        s[isnan.(sg.x)] .= NaN
-    end
+    # if any(isnan, sg.x)
+    #     s[isnan.(sg.x)] .= NaN
+    # end
 
     return s
 end
